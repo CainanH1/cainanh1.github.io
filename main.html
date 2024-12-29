@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1e1e1e;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        h1 {
+            color: #29b6f6;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #03a9f4;
+            margin-bottom: 10px;
+        }
+
+        .add-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #29b6f6;
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .form-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .form-overlay.active {
+            display: flex;
+        }
+
+        .form-container {
+            background: #2c2c2c;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        .form-container label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .form-container input, .form-container select, .form-container button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .form-container button {
+            background-color: #29b6f6;
+            color: white;
+            cursor: pointer;
+        }
+
+        .form-container button:hover {
+            background-color: #1e88e5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            border: 1px solid #444;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #03a9f4;
+            color: #121212;
+        }
+
+        td input[type="number"] {
+            width: 100%;
+            background: #2c2c2c;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 5px;
+        }
+
+        .green {
+            background-color: #4caf50;
+            color: white;
+            text-align: center;
+        }
+
+        .yellow {
+            background-color: #ffeb3b;
+            color: #121212;
+            text-align: center;
+        }
+
+        .red {
+            background-color: #f44336;
+            color: white;
+            text-align: center;
+        }
+
+        .remove-button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .remove-button:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Inventory Tracker</h1>
+        <button class="add-button" onclick="openForm()">+</button>
+
+        <div class="form-overlay" id="formOverlay">
+            <div class="form-container">
+                <h2>Add New Item</h2>
+                <label for="category">Category:</label>
+                <select id="category">
+                    <!-- Categories are dynamically filled -->
+                </select>
+                <label for="product">Product Name:</label>
+                <input type="text" id="product" placeholder="Enter product name">
+                <label for="amountStored">Amount Stored:</label>
+                <input type="number" id="amountStored" placeholder="Enter amount stored">
+                <label for="amountPerBox">Amount Per Box:</label>
+                <input type="number" id="amountPerBox" placeholder="Enter amount per box">
+                <label for="maxInStore">Max In Store All Time:</label>
+                <input type="number" id="maxInStore" placeholder="Enter max in store all time">
+                <button onclick="addItem()">Add Item</button>
+                <button onclick="closeForm()">Cancel</button>
+            </div>
+        </div>
+
+        <div id="categories-container"></div>
+    </div>
+
+    <script>
+        const data = {
+            BasicProducts: [
+                { product: "Pasta Penne", amountStored: 128, amountPerBox: 30, maxInStore: 150 },
+                { product: "Water Bottle", amountStored: 93, amountPerBox: 30, maxInStore: 150 },
+            ],
+            DairyProducts: [
+                { product: "Milk", amountStored: 200, amountPerBox: 20, maxInStore: 250 },
+            ],
+            SodaDrinks: [],
+            FrozenFoods: [],
+            Hygiene: [],
+            CleaningProducts: [],
+            SweetsSnacks: [],
+            Meat: [],
+            Preserves: [],
+            Infusions: [],
+            Seafood: [],
+            Books: [],
+            AlcoholicDrinks: [],
+            Pharmacy: [],
+            Produce: [],
+            Childcare: []
+        };
+
+        function calculateDifference(maxInStore, amountStored) {
+            return maxInStore - amountStored;
+        }
+
+        function calculateBoxesNeeded(difference, amountPerBox) {
+            return difference > 0 ? Math.ceil(difference / amountPerBox) : 0;
+        }
+
+        function renderSection(sectionId, items) {
+            const sectionContainer = document.getElementById(`${sectionId}-section`);
+            const tbody = sectionContainer.querySelector('tbody');
+            tbody.innerHTML = '';
+
+            items.forEach((item, index) => {
+                const difference = calculateDifference(item.maxInStore, item.amountStored);
+                const boxesNeeded = calculateBoxesNeeded(difference, item.amountPerBox);
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+                    <td>${item.product}</td>
+                    <td><input type="number" value="${item.amountStored}" min="0" onchange="updateAmount('${sectionId}', ${index}, this.value)" /></td>
+                    <td>${item.amountPerBox}</td>
+                    <td>${item.maxInStore}</td>
+                    <td>${difference}</td>
+                    <td class="${boxesNeeded === 0 ? 'green' : boxesNeeded <= 2 ? 'yellow' : 'red'}">${boxesNeeded}</td>
+                    <td><button class="remove-button" onclick="removeItem('${sectionId}', ${index})">Remove</button></td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        function updateAmount(sectionId, index, newValue) {
+            data[sectionId][index].amountStored = parseInt(newValue, 10);
+            renderSection(sectionId, data[sectionId]);
+        }
+
+        function removeItem(sectionId, index) {
+            data[sectionId].splice(index, 1);
+            renderSection(sectionId, data[sectionId]);
+        }
+
+        function renderCategories() {
+            const categoriesContainer = document.getElementById('categories-container');
+            const categorySelect = document.getElementById('category');
+
+            // Render category selection options
+            Object.keys(data).forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categorySelect.appendChild(option);
+
+                const section = document.createElement('section');
+                section.id = `${category}-section`;
+                section.innerHTML = `<h2>${category}</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Amount Stored</th>
+                                <th>Amount Per Box</th>
+                                <th>Max In Store All Time</th>
+                                <th>Difference In Max/Amount</th>
+                                <th>Boxes Needed Ordered</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Rows will be dynamically added here -->
+                        </tbody>
+                    </table>`;
+
+                categoriesContainer.appendChild(section);
+                renderSection(category, data[category]);
+            });
+        }
+
+        function openForm() {
+            document.getElementById('formOverlay').classList.add('active');
+        }
+
+        function closeForm() {
+            document.getElementById('formOverlay').classList.remove('active');
+        }
+
+        function addItem() {
+            const category = document.getElementById('category').value;
+            const product = document.getElementById('product').value;
+            const amountStored = parseInt(document.getElementById('amountStored').value, 10);
+            const amountPerBox = parseInt(document.getElementById('amountPerBox').value, 10);
+            const maxInStore = parseInt(document.getElementById('maxInStore').value, 10);
+
+            if (!data[category]) {
+                data[category] = [];
+            }
+
+            data[category].push({ product, amountStored, amountPerBox, maxInStore });
+            renderSection(category, data[category]);
+            closeForm();
+        }
+
+        // Initial render
+        renderCategories();
+    </script>
+</body>
+</html>
